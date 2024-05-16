@@ -34,17 +34,25 @@ class Phone(Field):
             print("not a number")
             raise ValueError("Invalid number format. Not a number")
         
+class BirthdayError(Exception):
+    # def __init__(self, message="Invalid date format. Use DD.MM.YYYY"):
+    #     self.message = message
+    #     super().__init__(self.message)
+    pass
+        
 class Birthday(Field):
     def __init__(self, value: str) -> datetime:
         try:
-            date_time = datetime.strptime(value, "%d.%m.%Y")
+            today = datetime.today().date()
+            b_day = datetime.strptime(value, "%d.%m.%Y").date()
         except:
-            print("Invalid date format. Use DD.MM.YYYY")
             self.value = None
-            return self.value       
-        self.value = date_time.date()
-        print(self.value)
-
+            print("Invalid date format. Use DD.MM.YYYY")
+            # raise BirthdayError
+            return self.value
+        
+        value = b_day if today >= b_day else None
+        
         super().__init__(value)
 
 class Record:
@@ -84,6 +92,7 @@ class Record:
     def __str__(self):
         try:
             b_day = self.birthday.value
+            # print(b_day)
         except:
             b_day = None
         return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}, birthday: {b_day}"
@@ -105,6 +114,30 @@ class AddressBook(UserDict):
             return
         self.data.pop(del_record)
 
+    def get_upcoming_birthdays(self):    
+
+        today = datetime.today()
+        b_users = []
+
+        for name, user in self.data.items():
+            user_year = str(user.birthday.value.year)
+            year_now = str(today.year)
+            user_data = str(user.birthday.value)
+            # print(user_data)
+            last_birthday = re.sub(user_year, year_now, user_data)
+            last_birthday_to_data = datetime.strptime(last_birthday, "%Y-%m-%d")
+            # print((last_birthday_to_data - today).days)
+            if -1 <= (last_birthday_to_data - today).days < 6:
+
+                match last_birthday_to_data.weekday():
+                    case 5:
+                        last_birthday_to_data = last_birthday_to_data + timedelta(days=2)
+                    case 6:
+                        last_birthday_to_data = last_birthday_to_data + timedelta(days=1)
+        
+                b_users.append({"name": user.name.value, "congratulation_date": last_birthday_to_data.strftime("%Y.%m.%d")})
+        return b_users
+
 # Створення нової адресної книги
 book = AddressBook()
 
@@ -112,7 +145,7 @@ book = AddressBook()
 john_record = Record("John")
 john_record.add_phone("1234567890")
 john_record.add_phone("5555555555")
-john_record.add_birthday("01.01,2001")
+john_record.add_birthday("19.05.2023")
 
 # Додавання запису John до адресної книги
 book.add_record(john_record)
@@ -120,13 +153,15 @@ book.add_record(john_record)
 # Створення та додавання нового запису для Jane
 jane_record = Record("Jane")
 jane_record.add_phone("9876543210")
-# jane_record.add_birthday("02.02.2002")
+jane_record.add_birthday("17.05.2023")
 book.add_record(jane_record)
 
 # Виведення всіх записів у книзі
 for name, record in book.data.items():
-    print(name)
     print(record)
+
+upcoming_birthdays = book.get_upcoming_birthdays()
+print("Список привітань з ДН:", upcoming_birthdays)
 
 # # Знаходження та редагування телефону для John
 # john = book.find("John")
