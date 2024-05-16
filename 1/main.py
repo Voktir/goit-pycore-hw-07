@@ -1,6 +1,7 @@
 from collections import UserDict
 from datetime import datetime, timedelta
 import re
+from functools import wraps
 
 class Field:
     def __init__(self, value: str):
@@ -138,36 +139,145 @@ class AddressBook(UserDict):
                 b_users.append({"name": user.name.value, "congratulation_date": last_birthday_to_data.strftime("%Y.%m.%d")})
         return b_users
 
-# Створення нової адресної книги
-book = AddressBook()
+def input_error(func):
+    @wraps(func)
+    def inner(*args, **kwargs):
+        try:
+            if func.__name__ != "show_phone":
+                name, phone = args
+                if len(name[1]) < 10:
+                    raise ValueError
+                else:                
+                    return func(*args, **kwargs)
+            if func.__name__ == "show_phone":
+                return func(*args, **kwargs)
+        except ValueError:
+            if func.__name__ != "show_phone":
+                return "Phone is to short. Give me name and full phone number please."
+            else:
+                return "Give me name. Enter the argument [name]"
+        except KeyError:
+            return "No such name!"
+        except IndexError:
+            return "Insufficient data. Give me name and full phone number please."
 
-# Створення запису для John
-john_record = Record("John")
-john_record.add_phone("1234567890")
-john_record.add_phone("5555555555")
-john_record.add_birthday("19.05.2023")
+    return inner
 
-# Додавання запису John до адресної книги
-book.add_record(john_record)
 
-# Створення та додавання нового запису для Jane
-jane_record = Record("Jane")
-jane_record.add_phone("9876543210")
-jane_record.add_birthday("17.05.2023")
-book.add_record(jane_record)
+def parse_input(user_input):
+    cmd, *args = user_input.split()
+    cmd = cmd.strip().lower()
+    return cmd, *args
 
-# Виведення всіх записів у книзі
-for name, record in book.data.items():
-    print(record)
-
-upcoming_birthdays = book.get_upcoming_birthdays()
-print("Список привітань з ДН:", upcoming_birthdays)
+@input_error
+def add_contact(args, book: AddressBook):
+    name, phone, *_ = args
+    record = book.find(name)
+    message = "Contact updated."
+    if record is None:
+        record = Record(name)
+        book.add_record(record)
+        message = "Contact added."
+    if phone:
+        record.add_phone(phone)
+    return message
 
 # # Знаходження та редагування телефону для John
 # john = book.find("John")
 # john.edit_phone("1234567890", "1112223333")
 
 # print(john)  # Виведення: Contact name: John, phones: 1112223333; 5555555555
+
+@input_error
+def change_username_phone(args, book: AddressBook):
+    name, phone, *_ = args
+    record = book.find(name)
+    record.edit_phone("1234567890", phone)
+    # if name in contacts:
+    #     contacts[name] = phone
+    #     return "Contact changed"
+    # else:
+    #     return "Wrong contact"
+    
+@input_error
+def show_phone(args, contacts):
+    # try:        
+    name, = args
+    name = name.strip().upper()
+    return contacts[name]
+        # if name in contacts:
+            # return [int(contacts.get(name))]
+        # else:
+        #     return "Wrong contact"
+    # except:
+    #     return "Wrong data! : phone [name]"
+
+def main():
+    book = AddressBook()
+    print("Welcome to the assistant bot!")
+    while True:
+        user_input = input("Enter a command: ")
+        command, *args = parse_input(user_input)
+
+        if command in ["close", "exit"]:
+            print("Good bye!")
+            break
+        elif command == "hello":
+            print("How can I help you?")
+        elif command == "add":
+            print(add_contact(args, book))
+        elif command == "all":
+            for name, record in book.data.items():
+                print(record)
+
+        elif command == "change":
+            print(change_username_phone(args, book))
+        elif command == "phone":
+            print(show_phone(args, book))
+
+        elif command == "add-birthday":
+            pass
+
+        elif command == "show-birthday":
+            pass
+
+        elif command == "birthdays":
+            pass
+
+        else:
+            print("Invalid command.")
+
+if __name__ == "__main__":
+    main()
+
+# # Створення нової адресної книги
+# book = AddressBook()
+
+# # Створення запису для John
+# john_record = Record("John")
+# john_record.add_phone("1234567890")
+# john_record.add_phone("5555555555")
+# john_record.add_birthday("19.05.2023")
+
+# # Додавання запису John до адресної книги
+# book.add_record(john_record)
+
+# # Створення та додавання нового запису для Jane
+# jane_record = Record("Jane")
+# jane_record.add_phone("9876543210")
+# jane_record.add_birthday("17.05.2023")
+# book.add_record(jane_record)
+
+# # Виведення всіх записів у книзі
+# for name, record in book.data.items():
+#     print(record)
+
+# upcoming_birthdays = book.get_upcoming_birthdays()
+# print("Список привітань з ДН:", upcoming_birthdays)
+
+
+
+
 
 # # Пошук конкретного телефону у записі John
 # found_phone = john.find_phone("5555555555")
