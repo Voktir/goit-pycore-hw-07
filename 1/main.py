@@ -59,7 +59,6 @@ class Birthday(Field):
 class Record:
     def __init__(self, name):
         self.name = Name(name)
-        # print(self.name)
         self.phones: list[Phone] = []
         self.birthday: Birthday = None
 
@@ -70,7 +69,6 @@ class Record:
             return
         valid_phone = Phone(p_number)
         self.phones.append(valid_phone)
-        # print(self.phones)
     
     def remove_phone(self, rem_ph_number):
         self.phones = [p for p in self.phones if p.value != rem_ph_number]
@@ -93,7 +91,6 @@ class Record:
     def __str__(self):
         try:
             b_day = self.birthday.value
-            # print(b_day)
         except:
             b_day = None
         return f"Contact name: {self.name.value}, phones: {'; '.join(p.value for p in self.phones)}, birthday: {b_day}"
@@ -101,9 +98,7 @@ class Record:
 class AddressBook(UserDict):
 
     def add_record(self, record: Record):
-        # print(record.name.value)
         self.data[record.name.value] = record
-        # print("..............")
 
     def find(self, name) -> Record:
         return self.data.get(name)
@@ -124,10 +119,8 @@ class AddressBook(UserDict):
             user_year = str(user.birthday.value.year)
             year_now = str(today.year)
             user_data = str(user.birthday.value)
-            # print(user_data)
             last_birthday = re.sub(user_year, year_now, user_data)
             last_birthday_to_data = datetime.strptime(last_birthday, "%Y-%m-%d")
-            # print((last_birthday_to_data - today).days)
             if -1 <= (last_birthday_to_data - today).days < 6:
 
                 match last_birthday_to_data.weekday():
@@ -182,35 +175,32 @@ def add_contact(args, book: AddressBook):
         record.add_phone(phone)
     return message
 
-# # Знаходження та редагування телефону для John
-# john = book.find("John")
-# john.edit_phone("1234567890", "1112223333")
-
-# print(john)  # Виведення: Contact name: John, phones: 1112223333; 5555555555
-
 @input_error
 def change_username_phone(args, book: AddressBook):
-    name, phone, *_ = args
+    name, find_num, replace_num, *_ = args
     record = book.find(name)
-    record.edit_phone("1234567890", phone)
-    # if name in contacts:
-    #     contacts[name] = phone
-    #     return "Contact changed"
-    # else:
-    #     return "Wrong contact"
-    
+    record.edit_phone(find_num, replace_num)
+
 @input_error
-def show_phone(args, contacts):
-    # try:        
+def show_phone(args,  book: AddressBook):
     name, = args
-    name = name.strip().upper()
-    return contacts[name]
-        # if name in contacts:
-            # return [int(contacts.get(name))]
-        # else:
-        #     return "Wrong contact"
-    # except:
-    #     return "Wrong data! : phone [name]"
+    record = book.find(name)
+    return record
+
+# john_record.add_birthday("19.05.2023")
+
+@input_error
+def add_birthday(args,  book: AddressBook):
+    name, = args
+    record = book.find(name)
+    if record is None:        
+        record = Record(name)
+        book.add_record(record)
+        message = "Wrong contact."
+    if phone:
+        record.add_phone(phone)
+    return message
+    return record
 
 def main():
     book = AddressBook()
@@ -218,7 +208,6 @@ def main():
     while True:
         user_input = input("Enter a command: ")
         command, *args = parse_input(user_input)
-
         if command in ["close", "exit"]:
             print("Good bye!")
             break
@@ -229,14 +218,13 @@ def main():
         elif command == "all":
             for name, record in book.data.items():
                 print(record)
-
         elif command == "change":
             print(change_username_phone(args, book))
         elif command == "phone":
             print(show_phone(args, book))
 
         elif command == "add-birthday":
-            pass
+            print(add_birthday(args, book))
 
         elif command == "show-birthday":
             pass
@@ -274,10 +262,6 @@ if __name__ == "__main__":
 
 # upcoming_birthdays = book.get_upcoming_birthdays()
 # print("Список привітань з ДН:", upcoming_birthdays)
-
-
-
-
 
 # # Пошук конкретного телефону у записі John
 # found_phone = john.find_phone("5555555555")
