@@ -35,24 +35,15 @@ class Phone(Field):
             print("not a number")
             raise ValueError("Invalid number format. Not a number")
         
-class BirthdayError(Exception):
-    # def __init__(self, message="Invalid date format. Use DD.MM.YYYY"):
-    #     self.message = message
-    #     super().__init__(self.message)
-    pass
-        
 class Birthday(Field):
     def __init__(self, value: str) -> datetime:
         try:
             today = datetime.today().date()
             b_day = datetime.strptime(value, "%d.%m.%Y").date()
+            value = b_day if today >= b_day else None
         except:
-            self.value = None
             print("Invalid date format. Use DD.MM.YYYY")
-            # raise BirthdayError
             return self.value
-        
-        value = b_day if today >= b_day else None
         
         super().__init__(value)
 
@@ -136,23 +127,30 @@ def input_error(func):
     @wraps(func)
     def inner(*args, **kwargs):
         try:
-            if func.__name__ != "show_phone":
-                name, phone = args
-                if len(name[1]) < 10:
-                    raise ValueError
-                else:                
-                    return func(*args, **kwargs)
-            if func.__name__ == "show_phone":
-                return func(*args, **kwargs)
+            return func(*args, **kwargs)
         except ValueError:
-            if func.__name__ != "show_phone":
+            if func.__name__ == "add_contact" or func.__name__ == "change_username_phone":
                 return "Phone is to short. Give me name and full phone number please."
-            else:
+            if func.__name__ == "show_phone":
                 return "Give me name. Enter the argument [name]"
+            if func.__name__ == "add_birthday":
+                return "Give me [ім'я] [дата народження]"
+            if func.__name__ == "show_birthday":
+                return "Give me [ім'я]"            
+            
         except KeyError:
             return "No such name!"
         except IndexError:
-            return "Insufficient data. Give me name and full phone number please."
+            if func.__name__ == "add_contact":
+                return "Insufficient data. Give me name and full phone number please."
+            if func.__name__ == "change_username_phone":
+                return "Insufficient data. Give me [ім'я] [старий телефон] [новий телефон]."
+            if func.__name__ == "add_birthday":
+                return "Insufficient data. Give me [ім'я] [дата народження]."
+            if func.__name__ == "show_birthday":
+                return "Insufficient data. Give me [ім'я]."            
+        except AttributeError:
+            return "Can`t update birthday."
 
     return inner
 
@@ -180,27 +178,46 @@ def change_username_phone(args, book: AddressBook):
     name, find_num, replace_num, *_ = args
     record = book.find(name)
     record.edit_phone(find_num, replace_num)
+    return "Phone chenged"
 
 @input_error
 def show_phone(args,  book: AddressBook):
-    name, = args
+    name, *_ = args
     record = book.find(name)
-    return record
-
-# john_record.add_birthday("19.05.2023")
+    if record is None:        
+        return "Wrong contact."
+    p_nums = ""
+    p = 0
+    while p < len(record.phones):
+        p_nums += str(record.phones[p]) + "\n"
+        p += 1
+    return p_nums
 
 @input_error
 def add_birthday(args,  book: AddressBook):
-    name, = args
+    name, b_day, *_ = args
     record = book.find(name)
     if record is None:        
-        record = Record(name)
-        book.add_record(record)
-        message = "Wrong contact."
-    if phone:
-        record.add_phone(phone)
+        return "Wrong contact."
+    record.add_birthday(b_day)
+    message = "Birthday contact updated."
     return message
+
+@input_error
+def show_birthday(args, book: AddressBook):
+    name, *_ = args
+    record = book.find(name)
+    if record is None:        
+        return "Wrong contact."
+    return record.birthday
+
+@input_error
+def birthdays(book: AddressBook):
+    record = book.get_upcoming_birthdays()
+    if record is None:        
+        return "No BD"
     return record
+
 
 def main():
     book = AddressBook()
@@ -222,56 +239,16 @@ def main():
             print(change_username_phone(args, book))
         elif command == "phone":
             print(show_phone(args, book))
-
         elif command == "add-birthday":
             print(add_birthday(args, book))
-
         elif command == "show-birthday":
-            pass
+            print(show_birthday(args, book))
 
         elif command == "birthdays":
-            pass
+            print(birthdays(book))
 
         else:
             print("Invalid command.")
 
 if __name__ == "__main__":
     main()
-
-# # Створення нової адресної книги
-# book = AddressBook()
-
-# # Створення запису для John
-# john_record = Record("John")
-# john_record.add_phone("1234567890")
-# john_record.add_phone("5555555555")
-# john_record.add_birthday("19.05.2023")
-
-# # Додавання запису John до адресної книги
-# book.add_record(john_record)
-
-# # Створення та додавання нового запису для Jane
-# jane_record = Record("Jane")
-# jane_record.add_phone("9876543210")
-# jane_record.add_birthday("17.05.2023")
-# book.add_record(jane_record)
-
-# # Виведення всіх записів у книзі
-# for name, record in book.data.items():
-#     print(record)
-
-# upcoming_birthdays = book.get_upcoming_birthdays()
-# print("Список привітань з ДН:", upcoming_birthdays)
-
-# # Пошук конкретного телефону у записі John
-# found_phone = john.find_phone("5555555555")
-# print(f"{john.name}: {found_phone}")  # Виведення: 5555555555
-# john.remove_phone("5555555555")
-# print(john)
-
-# # Видалення запису Jane
-# book.delete("Jane")
-
-# for name, record in book.data.items():
-#     print(name)
-#     print(record)
